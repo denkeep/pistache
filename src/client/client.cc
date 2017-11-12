@@ -1,6 +1,6 @@
-/* 
+/*
    Mathieu Stefani, 29 janvier 2016
-   
+
    Implementation of the Http client
 */
 
@@ -254,7 +254,7 @@ Transport::asyncSendRequestImpl(
     ssize_t totalWritten = 0;
     for (;;) {
         ssize_t bytesWritten = 0;
-        auto len = buffer.len - totalWritten;
+        ssize_t len = buffer.len - totalWritten;
         auto ptr = buffer.data + totalWritten;
         bytesWritten = ::send(fd, ptr, len, 0);
         if (bytesWritten < 0) {
@@ -382,7 +382,7 @@ Connection::connect(Address addr)
     hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
     hints.ai_socktype = SOCK_STREAM; /* Stream socket */
     hints.ai_flags = 0;
-    hints.ai_protocol = 0;  
+    hints.ai_protocol = 0;
 
     auto host = addr.host();
 
@@ -407,7 +407,7 @@ Connection::connect(Address addr)
         fd = sfd;
 
         transport_->asyncConnect(shared_from_this(), addr->ai_addr, addr->ai_addrlen)
-            .then([=]() { 
+            .then([=]() {
                 socklen_t len = sizeof(saddr);
                 getsockname(sfd, (struct sockaddr *)&saddr, &len);
                 connectionState_ = Connected;
@@ -586,7 +586,7 @@ Connection::performImpl(
 
 
     transport_->asyncSendRequest(shared_from_this(), timer, buffer).then(
-        [=](ssize_t bytes) mutable {
+        [=](ssize_t) mutable {
             inflightRequests.push_back(RequestEntry(std::move(resolveMover), std::move(rejectMover), std::move(timer), std::move(onDone)));
         },
         [=](std::exception_ptr e) { rejectCloneMover.val(e); });
@@ -681,12 +681,12 @@ ConnectionPool::idleConnections(const std::string& domain) const {
 }
 
 size_t
-ConnectionPool::availableConnections(const std::string& domain) const {
+ConnectionPool::availableConnections(const std::string&) const {
     return 0;
 }
 
 void
-ConnectionPool::closeIdleConnections(const std::string& domain) {
+ConnectionPool::closeIdleConnections(const std::string&) {
 }
 
 RequestBuilder&
@@ -880,7 +880,6 @@ Client::processRequestQueue() {
 
     for (auto& queues: requestsQueues) {
         const auto& domain = queues.first;
-        auto& queue = queues.second;
 
         for (;;) {
             auto conn = pool.pickConnection(domain);

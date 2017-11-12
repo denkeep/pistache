@@ -50,7 +50,7 @@ Header::parseRaw(const char *str, size_t len) {
 }
 
 void
-Allow::parseRaw(const char* str, size_t len) {
+Allow::parseRaw(const char*, size_t) {
 }
 
 void
@@ -122,11 +122,6 @@ CacheControl::parseRaw(const char* str, size_t len) {
     RawStreamBuf<> buf(const_cast<char *>(str), len);
     StreamCursor cursor(&buf);
 
-    const char *begin = str;
-    auto memsize = [&](size_t s) {
-        return std::min(s, cursor.remaining());
-    };
-
     do {
 
         bool found = false;
@@ -143,7 +138,6 @@ CacheControl::parseRaw(const char* str, size_t len) {
         if (!found) {
             for (const auto& d: TimedDirectives) {
                 if (match_raw(d.str, d.size, cursor)) {
-                    int c;
                     if (!cursor.advance(1)) {
                         throw std::runtime_error("Invalid caching directive, missing delta-seconds");
                     }
@@ -182,7 +176,7 @@ void
 CacheControl::write(std::ostream& os) const {
     using Http::CacheDirective;
 
-    auto directiveString = [](CacheDirective directive) -> const char* const {
+    auto directiveString = [](CacheDirective directive) -> const char* {
         switch (directive.directive()) {
             case CacheDirective::NoCache:
                 return "no-cache";
@@ -209,6 +203,8 @@ CacheControl::write(std::ostream& os) const {
             case CacheDirective::SMaxAge:
                 return "s-maxage";
             case CacheDirective::Ext:
+                return "";
+            default:
                 return "";
         }
     };
@@ -282,6 +278,8 @@ Connection::write(std::ostream& os) const {
     case ConnectionControl::KeepAlive:
         os << "Keep-Alive";
         break;
+    default:
+        break;
     }
 }
 
@@ -309,7 +307,7 @@ Date::parseRaw(const char* str, size_t len) {
 }
 
 void
-Date::write(std::ostream& os) const {
+Date::write(std::ostream&) const {
 }
 
 void
@@ -415,7 +413,7 @@ Accept::parseRaw(const char *str, size_t len) {
 }
 
 void
-Accept::write(std::ostream& os) const {
+Accept::write(std::ostream&) const {
 }
 
 void
@@ -472,7 +470,7 @@ Server::Server(const char* token)
 }
 
 void
-Server::parse(const std::string& data)
+Server::parse(const std::string&)
 {
 }
 

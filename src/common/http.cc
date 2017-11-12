@@ -1,6 +1,6 @@
 /* http.cc
    Mathieu Stefani, 13 August 2015
-   
+
    Http layer implementation
 */
 
@@ -407,7 +407,7 @@ namespace Private {
 
         message->body_.reserve(size);
         StreamCursor::Token chunkData(cursor);
-        const size_t available = cursor.remaining();
+        const ssize_t available = cursor.remaining();
 
         if (available < size) {
             cursor.advance(available);
@@ -725,7 +725,7 @@ serveFile(ResponseWriter& response, const char* fileName, const Mime::MediaType&
     auto sockFd = peer->fd();
 
     auto buffer = buf->buffer();
-    return transport->asyncWrite(sockFd, buffer, MSG_MORE).then([=](ssize_t bytes) {
+    return transport->asyncWrite(sockFd, buffer, MSG_MORE).then([=](ssize_t) {
         return transport->asyncWrite(sockFd, FileBuffer(fileName));
     }, Async::Throw);
 
@@ -772,15 +772,15 @@ Handler::onConnection(const std::shared_ptr<Tcp::Peer>& peer) {
 }
 
 void
-Handler::onDisconnection(const shared_ptr<Tcp::Peer>& peer) {
+Handler::onDisconnection(const shared_ptr<Tcp::Peer>&) {
 }
 
 void
-Handler::onTimeout(const Request& request, ResponseWriter response) {
+Handler::onTimeout(const Request&, ResponseWriter) {
 }
 
 void
-Timeout::onTimeout(uint64_t numWakeup) {
+Timeout::onTimeout(uint64_t) {
     if (!peer.lock()) return;
 
     ResponseWriter response(transport, request, handler);

@@ -1,6 +1,6 @@
 /* async.h
    Mathieu Stefani, 05 novembre 2015
-   
+
   This header brings a Promise<T> class inspired by the Promises/A+
   specification for asynchronous operations
 */
@@ -290,9 +290,9 @@ namespace Async {
             virtual void doResolve(const std::shared_ptr<CoreT<T>>& core) = 0;
             virtual void doReject(const std::shared_ptr<CoreT<T>>& core) = 0;
 
+            std::shared_ptr<Core> chain_;
             size_t resolveCount_;
             size_t rejectCount_;
-            std::shared_ptr<Core> chain_;
         };
 
         namespace impl {
@@ -386,7 +386,7 @@ namespace Async {
                 static_assert(sizeof...(Args) == 0,
                         "Can not attach a non-void continuation to a void-Promise");
 
-                void doResolve(const std::shared_ptr<CoreT<void>>& core) {
+                void doResolve(const std::shared_ptr<CoreT<void>>&) {
                     finishResolve(resolve_());
                 }
 
@@ -463,7 +463,7 @@ namespace Async {
                 static_assert(sizeof...(Args) == 0,
                         "Can not attach a non-void continuation to a void-Promise");
 
-                void doResolve(const std::shared_ptr<CoreT<void>>& core) {
+                void doResolve(const std::shared_ptr<CoreT<void>>&) {
                     resolve_();
                 }
 
@@ -570,7 +570,7 @@ namespace Async {
                     , reject_(reject)
                 { }
 
-                void doResolve(const std::shared_ptr<CoreT<void>>& core) {
+                void doResolve(const std::shared_ptr<CoreT<void>>&) {
                     auto promise = resolve_();
                     finishResolve(promise);
                 }
@@ -722,7 +722,7 @@ namespace Async {
         Resolver& operator=(const Resolver& other) = delete;
 
         Resolver(Resolver&& other) = default;
-        Resolver& operator=(Resolver&& other) = default; 
+        Resolver& operator=(Resolver&& other) = default;
 
         template<typename Arg>
         bool operator()(Arg&& arg) const {
@@ -855,7 +855,7 @@ namespace Async {
         }
 
         template<typename... Args>
-        void emplaceResolve(Args&& ...args) {
+        void emplaceResolve(Args&& ...) {
         }
 
         template<typename Exc>
@@ -932,7 +932,7 @@ namespace Async {
             -> decltype(std::declval<Func>()(Deferred<T>()), void()) {
             func(Deferred<T>(std::move(resolver), std::move(rejection)));
         }
-   };
+   }
 
     template<typename T>
     class Promise : public PromiseBase
@@ -947,7 +947,7 @@ namespace Async {
             : core_(std::make_shared<Core>())
             , resolver_(core_)
             , rejection_(core_)
-        { 
+        {
             details::callAsync<T>(func, resolver_, rejection_);
         }
 
