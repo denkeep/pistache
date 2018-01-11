@@ -509,6 +509,11 @@ namespace Uri {
         return params.find(name) != std::end(params);
     }
 
+    std::unordered_map<std::string, std::string>
+    Query::get(void) const {
+        return params;
+    }
+
 } // namespace Uri
 
 Request::Request()

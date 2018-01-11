@@ -98,6 +98,15 @@ namespace Uri {
         Optional<std::string> get(const std::string& name) const;
         bool has(const std::string& name) const;
 
+/* DenKeep */
+        /*!
+         * \brief Return an unordered map of URI parameters
+         *
+         * \note Code added, will need merge later on
+         */
+        std::unordered_map<std::string, std::string> get(void) const;
+/* !DenKeep */
+
         void clear() {
             params.clear();
         }
