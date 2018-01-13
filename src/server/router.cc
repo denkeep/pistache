@@ -212,8 +212,8 @@ namespace Private {
 
 RouterHandler::RouterHandler(const Rest::Router& router)
     : router(router)
-{
-}
+    {
+    }
 
 void
 RouterHandler::onRequest(
@@ -223,9 +223,13 @@ RouterHandler::onRequest(
     auto resp = response.clone();
     auto result = router.route(req, std::move(resp));
 
-    /* @Feature: add support for a custom NotFound handler */
     if (result == Router::Status::NotFound)
-        response.send(Http::Code::Not_Found, "Could not find a matching route");
+    {
+        if (this->router.not_found_handler != NULL)
+            this->router.not_found_handler(&response);
+        else
+            response.send(Http::Code::Not_Found, "Could not find a matching route");
+    }
 }
 
 } // namespace Private
@@ -292,6 +296,11 @@ Router::options(std::string resource, Route::Handler handler) {
 void
 Router::addCustomHandler(Route::Handler handler) {
     customHandlers.push_back(std::move(handler));
+}
+
+void
+Router::addCustomNotFoundHandler(void (*fn)(Http::ResponseWriter *)) {
+    this->not_found_handler = fn;
 }
 
 Router::Status

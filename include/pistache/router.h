@@ -156,6 +156,13 @@ public:
 
     void addCustomHandler(Route::Handler handler);
 
+/* DK */
+
+    void addCustomNotFoundHandler(void (*fn)(Http::ResponseWriter *));
+    void (*not_found_handler)(Http::ResponseWriter *);
+
+/* !DK */
+
     Status route(const Http::Request& request, Http::ResponseWriter response);
 
 private:
@@ -163,6 +170,7 @@ private:
     std::unordered_map<Http::Method, std::vector<Route>> routes;
 
     std::vector<Route::Handler> customHandlers;
+
 };
 
 namespace Private {
