@@ -92,7 +92,7 @@ Address::fromUnix(struct sockaddr* addr) {
 
     int port = ntohs(in_addr->sin_port);
 
-    return Address(std::move(host), port);
+    return Address(host, port);
 }
 
 std::string
