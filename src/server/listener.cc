@@ -25,6 +25,13 @@
 #include <pistache/os.h>
 #include <pistache/transport.h>
 
+#ifdef PISTACHE_USE_SSL
+
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+
+#endif /* PISTACHE_USE_SSL */
+
 using namespace std;
 
 namespace Pistache {
@@ -76,6 +83,9 @@ Listener::Listener()
     : listen_fd(-1)
     , backlog_(Const::MaxBacklog)
     , reactor_(Aio::Reactor::create())
+#ifdef PISTACHE_USE_SSL
+    , useSSL_(false)
+#endif /* PISTACHE_USE_SSL */
 { }
 
 Listener::Listener(const Address& address)
@@ -83,12 +93,22 @@ Listener::Listener(const Address& address)
     , listen_fd(-1)
     , backlog_(Const::MaxBacklog)
     , reactor_(Aio::Reactor::create())
+#ifdef PISTACHE_USE_SSL
+    , useSSL_(false)
+#endif /* PISTACHE_USE_SSL */
 {
 }
 
 Listener::~Listener() {
     if (isBound()) shutdown();
     if (acceptThread) acceptThread->join();
+#ifdef PISTACHE_USE_SSL
+    if (this->useSSL_)
+    {
+        SSL_CTX_free(this->ssl_ctx_);
+        EVP_cleanup();
+    }
+#endif /* PISTACHE_USE_SSL */
 }
 
 void
@@ -102,6 +122,9 @@ Listener::init(
 
     options_ = options;
     backlog_ = backlog;
+#ifdef PISTACHE_USE_SSL
+    useSSL_ = false;
+#endif /* PISTACHE_USE_SSL */
 
     if (options_.hasFlag(Options::InstallSignalHandler)) {
         if (signal(SIGINT, handle_sigint) == SIG_ERR) {
@@ -156,6 +179,7 @@ Listener::bind(const Address& address) {
         host = "0.0.0.0";
     }
 
+    std::cout << "Binding socket and stuff" << std::endl;
     /* We rely on the fact that a string literal is an lvalue const char[N] */
     static constexpr size_t MaxPortLen = sizeof("65535");
 
@@ -328,6 +352,51 @@ Listener::dispatchPeer(const std::shared_ptr<Peer>& peer) {
     transport->handleNewPeer(peer);
 
 }
+
+#ifdef PISTACHE_USE_SSL
+
+static SSL_CTX *ssl_create_context(std::string cert, std::string key)
+{
+    const SSL_METHOD *method;
+    SSL_CTX *ctx;
+
+    method = SSLv23_server_method();
+
+    ctx = SSL_CTX_new(method);
+    if (ctx == NULL)
+    {
+        ERR_print_errors_fp(stderr);
+        throw std::runtime_error("Cannot setup SSL context");
+    }
+
+    SSL_CTX_set_ecdh_auto(ctx, 1);
+
+    if (SSL_CTX_use_certificate_file(ctx, cert.c_str(), SSL_FILETYPE_PEM) <= 0)
+    {
+        ERR_print_errors_fp(stderr);
+        throw std::runtime_error("Cannot load SSL certificate");
+    }
+
+    if (SSL_CTX_use_PrivateKey_file(ctx, key.c_str(), SSL_FILETYPE_PEM) <= 0)
+    {
+        ERR_print_errors_fp(stderr);
+        throw std::runtime_error("Cannot load SSL private key");
+    }
+
+    return ctx;
+}
+
+void
+Listener::setupSSL(std::string cert_path, std::string key_path)
+{
+    SSL_load_error_strings();
+    OpenSSL_add_ssl_algorithms();
+
+    this->ssl_ctx_ = ssl_create_context(cert_path, key_path);
+    this->useSSL_ = true;
+}
+
+#endif /* PISTACHE_USE_SSL */
 
 } // namespace Tcp
 } // namespace Pistache

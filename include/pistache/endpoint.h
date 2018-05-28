@@ -47,6 +47,8 @@ public:
 
     void shutdown();
 
+    void useSSL(std::string cert, std::string key);
+
     bool isBound() const {
         return listener.isBound();
     }
