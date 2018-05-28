@@ -179,7 +179,6 @@ Listener::bind(const Address& address) {
         host = "0.0.0.0";
     }
 
-    std::cout << "Binding socket and stuff" << std::endl;
     /* We rely on the fact that a string literal is an lvalue const char[N] */
     static constexpr size_t MaxPortLen = sizeof("65535");
 
@@ -334,6 +333,25 @@ Listener::handleNewConnection() {
     if (client_fd < 0) {
         throw std::runtime_error(strerror(errno));
     }
+
+#ifdef PISTACHE_USE_SSL
+    SSL *ssl;
+
+    ssl = SSL_new(this->ssl_ctx_);
+    if (ssl == NULL)
+        throw std::runtime_error("Cannot create SSL connection");
+
+    SSL_set_fd(ssl, client_fd);
+
+    if (SSL_accept(ssl) <= 0)
+    {
+        ERR_print_errors_fp(stderr);
+        SSL_free(ssl);
+        close(client_fd);
+        return ;
+    }
+
+#endif /* PISTACHE_USE_SSL */
 
     make_non_blocking(client_fd);
 
