@@ -1,4 +1,3 @@
-#define PISTACHE_USE_SSL
 #include <pistache/endpoint.h>
 
 using namespace Pistache;
