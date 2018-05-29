@@ -127,7 +127,16 @@ Transport::handleIncoming(const std::shared_ptr<Peer>& peer) {
 
         ssize_t bytes;
 
+#ifdef PISTACHE_USE_SSL
+        if (peer->ssl() != NULL) {
+            bytes = SSL_read(peer->ssl(), buffer + totalBytes,
+                Const::MaxBuffer - totalBytes);
+        } else {
+            bytes = recv(fd, buffer + totalBytes, Const::MaxBuffer - totalBytes, 0);
+        }
+#else
         bytes = recv(fd, buffer + totalBytes, Const::MaxBuffer - totalBytes, 0);
+#endif /* PISTACHE_USE_SSL */
         if (bytes == -1) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 if (totalBytes > 0) {
@@ -167,6 +176,13 @@ Transport::handlePeerDisconnection(const std::shared_ptr<Peer>& peer) {
     if (it == std::end(peers))
         throw std::runtime_error("Could not find peer to erase");
 
+#ifdef PISTACHE_USE_SSL
+    if (peer->ssl() != NULL)
+    {
+        SSL_free(peer->ssl());
+    }
+#endif /* PISTACHE_USE_SSL */
+
     peers.erase(it);
 
     close(fd);
@@ -199,7 +215,22 @@ Transport::asyncWriteImpl(
         if (buffer.isRaw()) {
             auto raw = buffer.raw();
             auto ptr = raw.data + totalWritten;
+
+#ifdef PISTACHE_USE_SSL
+            auto it = peers.find(fd);
+
+            if (it == std::end(peers))
+                throw std::runtime_error("No peer found for fd: " + std::to_string(fd));
+
+            if (it->second->ssl() != NULL) {
+                bytesWritten = SSL_write(it->second->ssl(), ptr, len);
+            } else {
+                bytesWritten = ::send(fd, ptr, len, flags);
+            }
+#else
             bytesWritten = ::send(fd, ptr, len, flags);
+#endif /* PISTACHE_USE_SSL */
+
         } else {
             auto file = buffer.fd();
             off_t offset = totalWritten;

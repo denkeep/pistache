@@ -19,6 +19,10 @@
 #include <pistache/async.h>
 #include <pistache/reactor.h>
 
+#ifdef PISTACHE_USE_SSL
+#include <openssl/ssl.h>
+#endif /* PISTACHE_USE_SSL */
+
 namespace Pistache {
 namespace Tcp {
 
@@ -66,6 +70,11 @@ public:
 
     void pinWorker(size_t worker, const CpuSet& set);
 
+#ifdef PISTACHE_USE_SSL
+    void setupSSL(std::string cert_path, std::string key_path, bool use_compression);
+    void setupSSLAuth(std::string ca_file, std::string ca_path);
+#endif /* PISTACHE_USE_SSL */
+
 private: 
     Address addr_; 
     int listen_fd;
@@ -85,6 +94,11 @@ private:
 
     void handleNewConnection();
     void dispatchPeer(const std::shared_ptr<Peer>& peer);
+
+#ifdef PISTACHE_USE_SSL
+    bool        useSSL_;
+    SSL_CTX     *ssl_ctx_;
+#endif /* PISTACHE_USE_SSL */
 
 };
 

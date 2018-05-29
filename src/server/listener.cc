@@ -25,6 +25,13 @@
 #include <pistache/os.h>
 #include <pistache/transport.h>
 
+#ifdef PISTACHE_USE_SSL
+
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+
+#endif /* PISTACHE_USE_SSL */
+
 using namespace std;
 
 namespace Pistache {
@@ -76,6 +83,9 @@ Listener::Listener()
     : listen_fd(-1)
     , backlog_(Const::MaxBacklog)
     , reactor_(Aio::Reactor::create())
+#ifdef PISTACHE_USE_SSL
+    , useSSL_(false)
+#endif /* PISTACHE_USE_SSL */
 { }
 
 Listener::Listener(const Address& address)
@@ -83,12 +93,22 @@ Listener::Listener(const Address& address)
     , listen_fd(-1)
     , backlog_(Const::MaxBacklog)
     , reactor_(Aio::Reactor::create())
+#ifdef PISTACHE_USE_SSL
+    , useSSL_(false)
+#endif /* PISTACHE_USE_SSL */
 {
 }
 
 Listener::~Listener() {
     if (isBound()) shutdown();
     if (acceptThread) acceptThread->join();
+#ifdef PISTACHE_USE_SSL
+    if (this->useSSL_)
+    {
+        SSL_CTX_free(this->ssl_ctx_);
+        EVP_cleanup();
+    }
+#endif /* PISTACHE_USE_SSL */
 }
 
 void
@@ -102,6 +122,9 @@ Listener::init(
 
     options_ = options;
     backlog_ = backlog;
+#ifdef PISTACHE_USE_SSL
+    useSSL_ = false;
+#endif /* PISTACHE_USE_SSL */
 
     if (options_.hasFlag(Options::InstallSignalHandler)) {
         if (signal(SIGINT, handle_sigint) == SIG_ERR) {
@@ -311,10 +334,36 @@ Listener::handleNewConnection() {
         throw std::runtime_error(strerror(errno));
     }
 
+#ifdef PISTACHE_USE_SSL
+    SSL *ssl;
+
+    if (this->useSSL_) {
+
+        ssl = SSL_new(this->ssl_ctx_);
+        if (ssl == NULL)
+            throw std::runtime_error("Cannot create SSL connection");
+
+        SSL_set_fd(ssl, client_fd);
+        SSL_set_accept_state(ssl);
+
+        if (SSL_accept(ssl) <= 0) {
+            ERR_print_errors_fp(stderr);
+            SSL_free(ssl);
+            close(client_fd);
+            return ;
+        }
+    }
+#endif /* PISTACHE_USE_SSL */
+
     make_non_blocking(client_fd);
 
     auto peer = make_shared<Peer>(Address::fromUnix((struct sockaddr *)&peer_addr));
     peer->associateFd(client_fd);
+
+#ifdef PISTACHE_USE_SSL
+    if (this->useSSL_)
+        peer->associateSSL(ssl);
+#endif /* PISTACHE_USE_SSL */
 
     dispatchPeer(peer);
 }
@@ -328,6 +377,83 @@ Listener::dispatchPeer(const std::shared_ptr<Peer>& peer) {
     transport->handleNewPeer(peer);
 
 }
+
+#ifdef PISTACHE_USE_SSL
+
+static SSL_CTX *ssl_create_context(std::string cert, std::string key, bool use_compression)
+{
+    const SSL_METHOD    *method;
+    SSL_CTX             *ctx;
+
+    method = SSLv23_server_method();
+
+    ctx = SSL_CTX_new(method);
+    if (ctx == NULL)
+    {
+        ERR_print_errors_fp(stderr);
+        throw std::runtime_error("Cannot setup SSL context");
+    }
+
+    if (!use_compression)
+    {
+        /* Disable compression to prevent BREACH and CRIME vulnerabilities. */
+        if (!SSL_CTX_set_options(ctx, SSL_OP_NO_COMPRESSION)) {
+            ERR_print_errors_fp(stderr);
+            throw std::runtime_error("Cannot disable compression");
+        }
+    }
+
+    SSL_CTX_set_ecdh_auto(ctx, 1);
+
+    if (SSL_CTX_use_certificate_file(ctx, cert.c_str(), SSL_FILETYPE_PEM) <= 0) {
+        ERR_print_errors_fp(stderr);
+        throw std::runtime_error("Cannot load SSL certificate");
+    }
+
+    if (SSL_CTX_use_PrivateKey_file(ctx, key.c_str(), SSL_FILETYPE_PEM) <= 0) {
+        ERR_print_errors_fp(stderr);
+        throw std::runtime_error("Cannot load SSL private key");
+    }
+
+    if (!SSL_CTX_check_private_key(ctx)) {
+        ERR_print_errors_fp(stderr);
+        throw std::runtime_error("Private key does not match public key in the certificate");
+    }
+
+    return ctx;
+}
+
+void
+Listener::setupSSLAuth(std::string ca_file, std::string ca_path)
+{
+    const char *__ca_file = NULL;
+    const char *__ca_path = NULL;
+
+    if (!ca_file.empty())
+        __ca_file = ca_file.c_str();
+    if (!ca_path.empty())
+        __ca_path = ca_path.c_str();
+
+    if (SSL_CTX_load_verify_locations(this->ssl_ctx_, __ca_file, __ca_path) <= 0) {
+        ERR_print_errors_fp(stderr);
+        throw std::runtime_error("Cannot verify SSL locations");
+    }
+
+    SSL_CTX_set_verify(this->ssl_ctx_,
+        SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT | SSL_VERIFY_CLIENT_ONCE, 0);
+}
+
+void
+Listener::setupSSL(std::string cert_path, std::string key_path, bool use_compression)
+{
+    SSL_load_error_strings();
+    OpenSSL_add_ssl_algorithms();
+
+    this->ssl_ctx_ = ssl_create_context(cert_path, key_path, use_compression);
+    this->useSSL_ = true;
+}
+
+#endif /* PISTACHE_USE_SSL */
 
 } // namespace Tcp
 } // namespace Pistache
