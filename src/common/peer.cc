@@ -20,12 +20,18 @@ using namespace std;
 Peer::Peer()
     : fd_(-1)
     , transport_(nullptr)
+#ifdef PISTACHE_USE_SSL
+    , ssl_(NULL)
+#endif /* PISTACHE_USE_SSL */
 { }
 
 Peer::Peer(const Address& addr)
     : addr(addr)
     , fd_(-1)
     , transport_(nullptr)
+#ifdef PISTACHE_USE_SSL
+    , ssl_(NULL)
+#endif /* PISTACHE_USE_SSL */
 { }
 
 Address
@@ -42,6 +48,21 @@ void
 Peer::associateFd(int fd) {
     fd_ = fd;
 }
+
+#ifdef PISTACHE_USE_SSL
+void
+Peer::associateSSL(SSL *ssl)
+{
+    ssl_ = ssl;
+}
+
+SSL *
+Peer::ssl(void) const {
+    if (ssl_ == NULL)
+        throw std::runtime_error("The peer has no associated SSL context");
+    return ssl_;
+}
+#endif /* PISTACHE_USE_SSL */
 
 int
 Peer::fd() const {

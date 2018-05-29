@@ -337,26 +337,35 @@ Listener::handleNewConnection() {
 #ifdef PISTACHE_USE_SSL
     SSL *ssl;
 
-    ssl = SSL_new(this->ssl_ctx_);
-    if (ssl == NULL)
-        throw std::runtime_error("Cannot create SSL connection");
-
-    SSL_set_fd(ssl, client_fd);
-
-    if (SSL_accept(ssl) <= 0)
+    if (this->useSSL_)
     {
-        ERR_print_errors_fp(stderr);
-        SSL_free(ssl);
-        close(client_fd);
-        return ;
-    }
 
+        ssl = SSL_new(this->ssl_ctx_);
+        if (ssl == NULL)
+            throw std::runtime_error("Cannot create SSL connection");
+
+        SSL_set_fd(ssl, client_fd);
+        SSL_set_accept_state(ssl);
+
+        if (SSL_accept(ssl) <= 0)
+        {
+            ERR_print_errors_fp(stderr);
+            SSL_free(ssl);
+            close(client_fd);
+            return ;
+        }
+    }
 #endif /* PISTACHE_USE_SSL */
 
     make_non_blocking(client_fd);
 
     auto peer = make_shared<Peer>(Address::fromUnix((struct sockaddr *)&peer_addr));
     peer->associateFd(client_fd);
+
+#ifdef PISTACHE_USE_SSL
+    if (this->useSSL_)
+        peer->associateSSL(ssl);
+#endif /* PISTACHE_USE_SSL */
 
     dispatchPeer(peer);
 }
