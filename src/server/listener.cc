@@ -445,7 +445,7 @@ static SSL_CTX *ssl_create_context(std::string cert, std::string key)
     if (!SSL_CTX_check_private_key(ctx))
     {
         ERR_print_errors_fp(stderr);
-        throw std::runtime_error("Private key is not match public key in the certificate");
+        throw std::runtime_error("Private key does not match public key in the certificate");
     }
 
     return ctx;
