@@ -325,6 +325,29 @@ Listener::options() const {
     return options_;
 }
 
+static void dump_ssl(SSL *ssl)
+{
+    X509 * client_cert = SSL_get_peer_certificate(ssl);
+    char *str;
+
+    if (client_cert != NULL) {
+        printf("Client certificate:\n");
+
+        str = X509_NAME_oneline(X509_get_subject_name(client_cert), 0, 0);
+        printf("\t Subject: %s\n", str);
+        OPENSSL_free(str);
+
+        str = X509_NAME_oneline(X509_get_issuer_name(client_cert), 0, 0);
+        printf("\t Issuer: %s\n", str);
+        OPENSSL_free(str);
+
+        /* Deallocate certificate, free memory */
+        X509_free(client_cert);
+    } else {
+        printf("Client does not have certificate.\n");
+    }
+}
+
 void
 Listener::handleNewConnection() {
     struct sockaddr_in peer_addr;
@@ -354,6 +377,8 @@ Listener::handleNewConnection() {
             close(client_fd);
             return ;
         }
+
+        dump_ssl(ssl);
     }
 #endif /* PISTACHE_USE_SSL */
 
@@ -384,8 +409,8 @@ Listener::dispatchPeer(const std::shared_ptr<Peer>& peer) {
 
 static SSL_CTX *ssl_create_context(std::string cert, std::string key)
 {
-    const SSL_METHOD *method;
-    SSL_CTX *ctx;
+    const SSL_METHOD    *method;
+    SSL_CTX             *ctx;
 
     method = SSLv23_server_method();
 
@@ -394,6 +419,13 @@ static SSL_CTX *ssl_create_context(std::string cert, std::string key)
     {
         ERR_print_errors_fp(stderr);
         throw std::runtime_error("Cannot setup SSL context");
+    }
+
+    /* Disable compression to prevent BREACH and CRIME vulnerabilities. */
+    if (!SSL_CTX_set_options(ctx, SSL_OP_NO_COMPRESSION))
+    {
+        ERR_print_errors_fp(stderr);
+        throw std::runtime_error("Cannot disable compression");
     }
 
     SSL_CTX_set_ecdh_auto(ctx, 1);
@@ -410,7 +442,33 @@ static SSL_CTX *ssl_create_context(std::string cert, std::string key)
         throw std::runtime_error("Cannot load SSL private key");
     }
 
+    if (!SSL_CTX_check_private_key(ctx))
+    {
+        ERR_print_errors_fp(stderr);
+        throw std::runtime_error("Private key is not match public key in the certificate");
+    }
+
     return ctx;
+}
+
+void
+Listener::setupSSLAuth(std::string ca_file, std::string ca_path)
+{
+    const char *__ca_file = NULL;
+    const char *__ca_path = NULL;
+
+    if (!ca_file.empty())
+        __ca_file = ca_file.c_str();
+    if (!ca_path.empty())
+        __ca_path = ca_path.c_str();
+
+    if (SSL_CTX_load_verify_locations(this->ssl_ctx_, __ca_file, __ca_path) <= 0)
+    {
+        ERR_print_errors_fp(stderr);
+        throw std::runtime_error("Cannot verify SSL locations");
+    }
+
+    SSL_CTX_set_verify(this->ssl_ctx_, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT | SSL_VERIFY_CLIENT_ONCE, 0);
 }
 
 void

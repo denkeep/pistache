@@ -89,6 +89,17 @@ Endpoint::useSSL(std::string cert, std::string key)
 #endif /* PISTACHE_USE_SSL */
 }
 
+void
+Endpoint::useSSLAuth(std::string ca_file, std::string ca_path)
+{
+#ifndef PISTACHE_USE_SSL
+    throw std::runtime_error("Pistache is not compiled with SSL support.");
+#else
+    listener.setupSSLAuth(ca_file, ca_path);
+#endif /* PISTACHE_USE_SSL */
+
+}
+
 Async::Promise<Tcp::Listener::Load>
 Endpoint::requestLoad(const Tcp::Listener::Load& old) {
     return listener.requestLoad(old);

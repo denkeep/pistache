@@ -214,12 +214,13 @@ Transport::asyncWriteImpl(
         if (buffer.isRaw()) {
             auto raw = buffer.raw();
             auto ptr = raw.data + totalWritten;
+
 #ifdef PISTACHE_USE_SSL
             auto it = peers.find(fd);
+
             if (it == std::end(peers))
                 throw std::runtime_error("No peer found for fd: " + std::to_string(fd));
 
-            std::cout << "Sending data for fd" << std::to_string(fd) <<  " ptr: " << ptr << std::endl;
             if (it->second->ssl() != NULL)
             {
                 bytesWritten = SSL_write(it->second->ssl(), ptr, len);
@@ -231,6 +232,7 @@ Transport::asyncWriteImpl(
 #else
             bytesWritten = ::send(fd, ptr, len, flags);
 #endif /* PISTACHE_USE_SSL */
+
         } else {
             auto file = buffer.fd();
             off_t offset = totalWritten;

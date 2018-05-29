@@ -48,6 +48,7 @@ public:
     void shutdown();
 
     void useSSL(std::string cert, std::string key);
+    void useSSLAuth(std::string ca_file, std::string ca_path = "");
 
     bool isBound() const {
         return listener.isBound();

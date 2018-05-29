@@ -72,6 +72,7 @@ public:
 
 #ifdef PISTACHE_USE_SSL
     void setupSSL(std::string cert_path, std::string key_path);
+    void setupSSLAuth(std::string ca_file, std::string ca_path);
 #endif /* PISTACHE_USE_SSL */
 
 private: 

@@ -19,7 +19,8 @@ int main(void) {
     Http::Endpoint server(addr);
     server.init(opts);
     server.setHandler(std::make_shared<HelloHandler>());
-    server.useSSL("domain.crt", "domain.key");
+    server.useSSL("./cert/server.crt", "./cert/server.key");
+    server.useSSLAuth("./CA/rootCA.crt");
 
     server.serve();
     return 0;
