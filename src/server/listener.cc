@@ -335,7 +335,7 @@ Listener::handleNewConnection() {
     }
 
 #ifdef PISTACHE_USE_SSL
-    SSL *ssl;
+    SSL *ssl = NULL;
 
     if (this->useSSL_) {
 
