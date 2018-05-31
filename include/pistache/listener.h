@@ -95,8 +95,8 @@ private:
     void handleNewConnection();
     void dispatchPeer(const std::shared_ptr<Peer>& peer);
 
-#ifdef PISTACHE_USE_SSL
     bool        useSSL_;
+#ifdef PISTACHE_USE_SSL
     SSL_CTX     *ssl_ctx_;
 #endif /* PISTACHE_USE_SSL */
 
