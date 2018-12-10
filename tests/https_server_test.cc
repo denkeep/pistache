@@ -54,6 +54,7 @@ TEST(http_client_test, basic_tls_request) {
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
 
     res = curl_easy_perform(curl);
+    fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
     ASSERT_EQ(res, CURLE_OK);
     ASSERT_EQ(buffer, "Hello, World!");
 
@@ -95,6 +96,7 @@ TEST(http_client_test, basic_tls_request_with_auth) {
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
 
     res = curl_easy_perform(curl);
+    fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
     ASSERT_EQ(res, CURLE_OK);
     ASSERT_EQ(buffer, "Hello, World!");
 
@@ -134,6 +136,7 @@ TEST(http_client_test, basic_tls_request_with_auth_no_client_cert) {
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
 
     res = curl_easy_perform(curl);
+    fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
     ASSERT_NE(res, CURLE_OK);
 
     curl_easy_cleanup(curl);
@@ -174,6 +177,7 @@ TEST(http_client_test, basic_tls_request_with_auth_client_cert_not_signed) {
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
 
     res = curl_easy_perform(curl);
+    fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
     ASSERT_NE(res, CURLE_OK);
 
     curl_easy_cleanup(curl);
@@ -225,6 +229,7 @@ TEST(http_client_test, basic_tls_request_with_auth_with_cb) {
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
 
     res = curl_easy_perform(curl);
+    fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
     ASSERT_EQ(res, CURLE_OK);
     ASSERT_EQ(buffer, "Hello, World!");
     ASSERT_EQ(callback_called, true);
