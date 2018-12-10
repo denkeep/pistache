@@ -14,7 +14,7 @@ using namespace Pistache;
 
 static size_t write_cb(void *contents, size_t size, size_t nmemb, void *userp)
 {
-    ((std::string*)userp)->append((char*)contents, size * nmemb);
+    ((std::string*)userp)->append((char *)contents, size * nmemb);
     return size * nmemb;
 }
 
@@ -49,6 +49,7 @@ TEST(http_client_test, basic_tls_request) {
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &write_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buffer);
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
 
     /* Skip hostname check */
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
@@ -91,6 +92,7 @@ TEST(http_client_test, basic_tls_request_with_auth) {
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &write_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buffer);
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
 
     /* Skip hostname check */
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
@@ -130,6 +132,7 @@ TEST(http_client_test, basic_tls_request_with_auth_no_client_cert) {
 
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &write_cb);
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buffer);
 
     /* Skip hostname check */
@@ -168,6 +171,7 @@ TEST(http_client_test, basic_tls_request_with_auth_client_cert_not_signed) {
     curl_easy_setopt(curl, CURLOPT_SSLCERT, "./certs/client_not_signed.crt");
     curl_easy_setopt(curl, CURLOPT_SSLKEY, "./certs/client_not_signed.key");
     curl_easy_setopt(curl, CURLOPT_CAINFO, "./certs/rootCA.crt");
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
 
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &write_cb);
@@ -220,6 +224,7 @@ TEST(http_client_test, basic_tls_request_with_auth_with_cb) {
     curl_easy_setopt(curl, CURLOPT_SSLCERT, "./certs/client.crt");
     curl_easy_setopt(curl, CURLOPT_SSLKEY, "./certs/client.key");
     curl_easy_setopt(curl, CURLOPT_CAINFO, "./certs/rootCA.crt");
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
 
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &write_cb);
